@@ -1,4 +1,4 @@
-<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"><title>A.S.A. · 99 Noches · Versión 40</title><style>
+<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"><title>A.S.A. · 99 Noches · Versión 41</title><style>
 *{box-sizing:border-box}body{margin:0;background:#10202b;color:#fff;font:13px system-ui,Arial;overflow:hidden;touch-action:none}canvas{display:block}button{touch-action:manipulation;color:white;border:1px solid #ffffff55;background:#17453fe8;border-radius:12px;padding:10px;font-weight:800}button:active{filter:brightness(1.4)}#hud{position:fixed;top:env(safe-area-inset-top,0px);left:8px;right:8px;pointer-events:none;text-shadow:0 1px 4px #000}#top{display:flex;justify-content:space-between;gap:6px}#title{font-weight:900;font-size:14px}#mission{background:#10252bcc;border:1px solid #ffffff33;padding:7px;border-radius:9px;margin-top:5px;max-width:430px;font-size:12px}#meters{display:flex;gap:5px;margin-top:5px;flex-wrap:wrap}.meter{background:#091c24bf;border-radius:7px;padding:4px 6px;width:86px;font-size:10px}.track{height:6px;background:#303c43;border-radius:5px;overflow:hidden;margin-top:3px}.fill{height:100%;width:100%;background:#53d479}#hungerFill{background:#edb95e}#waterFill{background:#59bff1}#tempFill{background:#94d7e4}#clock{font-weight:800;background:#10252bcc;border-radius:9px;padding:7px;white-space:nowrap}#stats{position:fixed;top:121px;right:8px;max-width:148px;background:#10252bd9;padding:8px;border-radius:10px;font-size:11px;line-height:1.65;pointer-events:none}#joystick{position:fixed;left:16px;bottom:23px;width:120px;height:120px;border:2px solid #ffffff77;border-radius:100%;background:#ffffff1e;touch-action:none}#nub{position:absolute;left:38px;top:38px;width:40px;height:40px;border-radius:50%;background:#f1f4e5b8}#actions{position:fixed;bottom:18px;right:10px;display:grid;grid-template-columns:repeat(2,76px);gap:5px}#actions button{font-size:10px;min-height:48px;padding:5px 2px;user-select:none;-webkit-user-select:none}#interact{background:#ad7525}#attack{background:#8f3637}#build{background:#335e8b}#toast{position:fixed;left:10%;right:10%;top:12%;z-index:30;background:rgba(12,25,20,.87);border-radius:9px;padding:8px 10px;font-weight:900;font-size:16px;text-align:center;text-shadow:0 2px 5px #000;pointer-events:none}#intro,#overlay{position:fixed;inset:0;background:linear-gradient(155deg,#102a3cf5,#173a2df5);display:flex;align-items:center;justify-content:center;flex-direction:column;z-index:5;padding:20px;text-align:center}#intro h1{font-size:28px;margin:6px}#intro p{line-height:1.5;max-width:490px}#start{font-size:17px;padding:15px 24px;background:#ad7525}#overlay{display:none;background:#081a26e9;z-index:6}#overlay button{margin:7px}#tip{position:fixed;bottom:151px;left:13px;font-size:10px;color:#fff9;text-shadow:0 1px 3px #000;pointer-events:none}#err{font-size:12px;color:#ffd38a}#inventory{position:fixed;bottom:112px;right:10px;display:none;width:min(255px,65vw);max-height:58vh;overflow-y:auto;background:rgba(225,239,229,.66);color:#142b21;backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px);padding:10px;border:1px solid rgba(255,255,255,.5);border-radius:12px;z-index:4;line-height:1.35;font-size:13px;text-shadow:none}#inventory button{font-size:12px;padding:7px 9px}#inventory h3{margin:0 0 5px;font-size:16px}#inventory button{margin-top:7px}#menu{position:fixed;top:8px;right:8px;pointer-events:auto;font-size:12px;padding:6px 9px}#daytag{font-size:11px;color:#f7ddab}
 </style></head><body>
 <div id="hud"><div id="top"><div><div id="title">🏔️ A.S.A. · 99 NOCHES <span id="daytag">· EXPEDICIÓN</span></div><div id="mission">MISIÓN 1 · Encontrá la mochila roja cerca del campamento.</div></div><div id="clock">☀️ Día 1 · 08:00</div></div><div id="meters"><div class="meter">❤️ Vida <span id="hpN">100</span><div class="track"><div id="hpFill" class="fill"></div></div></div><div class="meter">🍖 Comida <span id="hungerN">85</span><div class="track"><div id="hungerFill" class="fill"></div></div></div><div class="meter">💧 Agua <span id="waterN">85</span><div class="track"><div id="waterFill" class="fill"></div></div></div><div class="meter">🌡️ Calor <span id="tempN">90</span><div class="track"><div id="tempFill" class="fill"></div></div></div></div></div>
@@ -140,20 +140,40 @@ let soundContext=null,noiseBuffer=null;
 function initGameAudio(){try{soundContext=soundContext||new (window.AudioContext||window.webkitAudioContext)();soundContext.resume();if(!noiseBuffer){noiseBuffer=soundContext.createBuffer(1,soundContext.sampleRate*2,soundContext.sampleRate);const d=noiseBuffer.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=Math.random()*2-1}}catch(e){soundContext=null}}
 let activeRumble=null;
 function playDangerSound(){
- initGameAudio();if(!soundContext||!noiseBuffer){say('Audio no disponible en este navegador');return;}
- if(activeRumble){try{activeRumble.stop()}catch(e){}activeRumble=null}
+ initGameAudio();
+ if(!soundContext){say('Activá el sonido del teléfono para escuchar la avalancha');return}
  const ctx=soundContext,t=ctx.currentTime,duration=13.8;
- const source=ctx.createBufferSource(),low=ctx.createBiquadFilter(),body=ctx.createBiquadFilter(),gain=ctx.createGain();
- source.buffer=noiseBuffer;source.loop=true;low.type='lowpass';low.frequency.setValueAtTime(110,t);low.frequency.linearRampToValueAtTime(420,t+3);low.frequency.linearRampToValueAtTime(190,t+duration);
- body.type='peaking';body.frequency.value=85;body.Q.value=.7;body.gain.value=12;
- gain.gain.setValueAtTime(.0001,t);gain.gain.exponentialRampToValueAtTime(.48,t+1.6);
- gain.gain.setValueAtTime(.48,t+10);gain.gain.exponentialRampToValueAtTime(.0001,t+duration);
- source.connect(low);low.connect(body);body.connect(gain);gain.connect(ctx.destination);
- const sub=ctx.createOscillator(),subGain=ctx.createGain();sub.type='sawtooth';sub.frequency.setValueAtTime(48,t);sub.frequency.linearRampToValueAtTime(31,t+duration);
- subGain.gain.setValueAtTime(.0001,t);subGain.gain.linearRampToValueAtTime(.095,t+2);subGain.gain.setValueAtTime(.095,t+10);subGain.gain.linearRampToValueAtTime(0,t+duration);
- sub.connect(subGain);subGain.connect(ctx.destination);
- source.start(t);sub.start(t);source.stop(t+duration+.05);sub.stop(t+duration+.05);activeRumble=source;
+ // Avalancha: ruido marrón de nieve pesada, capas graves y golpes de bloques.
+ // Evitar ruido blanco repetitivo y oscilador de diente de sierra (efecto radio).
+ const length=Math.floor(ctx.sampleRate*duration),buffer=ctx.createBuffer(1,length,ctx.sampleRate);
+ const data=buffer.getChannelData(0);let brown=0,slow=0;
+ for(let i=0;i<length;i++){
+   const n=Math.random()*2-1;
+   brown=(brown+.025*n)/1.025;
+   slow=slow*.995+brown*.005;
+   const seconds=i/ctx.sampleRate;
+   const surge=.55+.24*Math.sin(seconds*1.9)+.13*Math.sin(seconds*5.7);
+   data[i]=Math.max(-1,Math.min(1,(brown*3.7+slow*5)*surge));
+ }
+ const source=ctx.createBufferSource(),low=ctx.createBiquadFilter(),gain=ctx.createGain();
+ source.buffer=buffer;low.type='lowpass';low.frequency.value=290;gain.gain.setValueAtTime(.0001,t);
+ gain.gain.linearRampToValueAtTime(.8,t+1.1);gain.gain.setValueAtTime(.8,t+10.8);gain.gain.linearRampToValueAtTime(.0001,t+duration);
+ source.connect(low);low.connect(gain);gain.connect(ctx.destination);
+ source.start(t);source.stop(t+duration+.02);activeRumble=source;
+ // Golpes irregulares de hielo y roca dentro de la masa de nieve.
+ for(let i=0;i<22;i++){
+   const at=t+.35+i*.52+Math.random()*.25;
+   const osc=ctx.createOscillator(),og=ctx.createGain(),filter=ctx.createBiquadFilter();
+   osc.type='sine';osc.frequency.setValueAtTime(95+Math.random()*55,at);
+   osc.frequency.exponentialRampToValueAtTime(27+Math.random()*18,at+.3);
+   filter.type='lowpass';filter.frequency.value=180;
+   og.gain.setValueAtTime(.0001,at);og.gain.exponentialRampToValueAtTime(.16+Math.random()*.15,at+.025);
+   og.gain.exponentialRampToValueAtTime(.0001,at+.42);
+   osc.connect(filter);filter.connect(og);og.connect(ctx.destination);osc.start(at);osc.stop(at+.44);
+ }
+ source.onended=()=>{if(activeRumble===source)activeRumble=null};
 }
+
 function playAnimalCall(kind='wild'){
  initGameAudio();if(!soundContext)return;
  const ctx=soundContext,t=ctx.currentTime,osc=ctx.createOscillator(),filter=ctx.createBiquadFilter(),g=ctx.createGain();
