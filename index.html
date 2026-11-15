@@ -108,7 +108,7 @@ function updateOutposts(dt){
  if(p.risk==='avalancha'&&state.avalancheActive>0)hit=dt*19;
  if(p.risk==='crecida'&&night&&state.day%3===0)hit=dt*9;
  if(p.risk==='pantano')hit=dt*1.2;
- if(p.kind==='fogata'){const flame=p.mesh.children.find(c=>c.geometry&&c.geometry.type==='ConeGeometry');if(flame)flame.scale.y=(1+(p.level-1)*.35)*(1+Math.sin(state.elapsed*9)*.12)}if(hit){p.hp-=hit/p.level;if(p.hp<=0){p.damaged=true;p.mesh.visible=false;say('⚠️ '+p.kind+' destruido por '+p.risk+'. Recuperá materiales y buscá otro sitio');state.wood=Math.min(20,state.wood+2);state.rock=Math.min(10,state.rock+1)}}}
+ if(p.kind==='fogata'){const flame=p.mesh.children.find(c=>c.geometry&&c.geometry.type==='ConeGeometry');if(flame)flame.scale.y=(1+(p.level-1)*.35)*(1+Math.sin(state.elapsed*9)*.12)}if(hit){p.hp-=hit/p.level;if(p.hp<=0){p.damaged=true;p.mesh.visible=false;for(let k=0;k<7;k++){const debris=new THREE.Mesh(new THREE.BoxGeometry(.3,.2,.45),new THREE.MeshLambertMaterial({color:0x765c3b}));debris.position.set(p.x+(Math.random()-.5)*3,.12,p.z+(Math.random()-.5)*3);debris.rotation.y=Math.random()*6.28;scene.add(debris)}say('⚠️ '+p.kind+' destruido por '+p.risk+'. Recuperá materiales y buscá otro sitio');state.wood=Math.min(20,state.wood+2);state.rock=Math.min(10,state.rock+1)}}}
 }
 $('quickShelter').onclick=()=>makeOutpost('refugio');$('quickFire').onclick=()=>makeOutpost('fogata');
 
@@ -143,7 +143,7 @@ snowFront.position.set(0,2.4,5);avalancheMesh.add(snowFront);
 const snowCrest=new THREE.Mesh(new THREE.PlaneGeometry(30,2,32,2),new THREE.MeshLambertMaterial({color:0xffffff,side:THREE.DoubleSide,transparent:true,opacity:.72}));
 snowCrest.position.set(0,4.5,4.8);avalancheMesh.add(snowCrest);
 avalancheMesh.visible=false;
-const avalancheTest=document.createElement('button');avalancheTest.textContent='🏔️ PROBAR AVALANCHA + SONIDO';avalancheTest.style.cssText='position:fixed;top:62px;right:8px;z-index:20;background:#7a3b29;padding:9px;font-size:12px;max-width:155px';document.body.appendChild(avalancheTest);avalancheTest.onclick=()=>{initGameAudio();playDangerSound();avalancheCorridorX=-12;state.avalancheActive=14;state.avalancheWarning=true;avalanchePrev=false;say('🏔️ PRUEBA: avalancha visible durante 14 segundos y estruendo')};
+const avalancheTest=document.createElement('button');avalancheTest.textContent='🏔️ PROBAR AVALANCHA + SONIDO';avalancheTest.style.cssText='position:fixed;top:62px;right:8px;z-index:20;background:#7a3b29;padding:9px;font-size:12px;max-width:155px';document.body.appendChild(avalancheTest);avalancheTest.onclick=()=>{initGameAudio();if(!tryRecordedAvalanche())playDangerSound();avalancheCorridorX=-12;state.avalancheActive=14;state.avalancheWarning=true;avalanchePrev=false;say('🏔️ PRUEBA: avalancha visible durante 14 segundos y estruendo')};
 let avalanchePrev=false;
 let soundContext=null,noiseBuffer=null;
 function initGameAudio(){try{soundContext=soundContext||new (window.AudioContext||window.webkitAudioContext)();soundContext.resume();if(!noiseBuffer){noiseBuffer=soundContext.createBuffer(1,soundContext.sampleRate*2,soundContext.sampleRate);const d=noiseBuffer.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=Math.random()*2-1}}catch(e){soundContext=null}}
@@ -193,16 +193,21 @@ function playAnimalCall(kind='wild'){
  osc.connect(filter);filter.connect(g);g.connect(ctx.destination);osc.start(t);osc.stop(t+1.85);
 }
 let lastAnimalCall=-100;
+// v42: audio real opcional. Se activará automáticamente cuando el MP3 se publique.
+const avalancheRecording=new Audio('assets/avalancha-real.mp3');avalancheRecording.preload='none';avalancheRecording.volume=.65;
+avalancheRecording.addEventListener('error',()=>{avalancheRecording.dataset.unavailable='1'});
+function tryRecordedAvalanche(){if(avalancheRecording.dataset.unavailable==='1')return false;try{avalancheRecording.currentTime=0;avalancheRecording.play().catch(()=>{});return true}catch(e){return false}}
+
 
 function updateRescueAndEffects(dt){
  flashlight.position.copy(hero.root.position).add(new THREE.Vector3(0,2.3,0));
  const a=hero.root.rotation.y;flashTarget.position.copy(flashlight.position).add(new THREE.Vector3(Math.sin(a)*12,-1.8,Math.cos(a)*12));
  const hr=(state.minutes/60)%24;flashlight.intensity=flashlightOn?(hr>=18||hr<7?13:5):0;
- if(state.started&&state.elapsed-lastAnimalCall>24&&Math.random()<dt*.075){lastAnimalCall=state.elapsed;playAnimalCall(Math.random()<.5?'puma':'wild');}
+ if(state.started&&state.elapsed-lastAnimalCall>18&&Math.random()<dt*(hr>=19||hr<6?.16:.045)){lastAnimalCall=state.elapsed;playAnimalCall(Math.random()<.5?'puma':'wild');}
  const avalancheNow=state.avalancheActive>0;
  if(avalancheNow&&!state.down){const progress=Math.max(0,Math.min(1,(14-state.avalancheActive)/14));const front=-52+progress*34;const px=hero.root.position.x,pz=hero.root.position.z;if(px>avalancheCorridorX-15&&px<avalancheCorridorX+15&&Math.abs(pz-front)<8){hero.root.position.z=Math.min(88,pz+dt*10);hero.root.position.x=Math.max(-27,Math.min(3,px+dt*1.6));state.health=clamp(state.health-dt*22,0,100);state.temp=clamp(state.temp-dt*9,0,100);if(state.health<=0&&!state.down){state.down=true;state.rescueTime=0;say('🏔️ La avalancha te derribó: tu compañero inicia el rescate');}}}
 
- if(avalancheNow&&!avalanchePrev){if(!activeRumble)playDangerSound();say('🏔️ ¡ALUD! Frente de nieve avanzando: buscá terreno seguro');}
+ if(avalancheNow&&!avalanchePrev){if(!activeRumble&&!tryRecordedAvalanche())playDangerSound();say('🏔️ ¡ALUD! Frente de nieve avanzando: buscá terreno seguro');}
  avalanchePrev=avalancheNow;
  avalancheMesh.visible=avalancheNow;
  if(avalancheNow){const progress=Math.max(0,Math.min(1,(14-state.avalancheActive)/14));avalancheMesh.position.x=avalancheCorridorX;avalancheMesh.position.z=-52+progress*34;avalancheMesh.position.y=.25+Math.sin(state.elapsed*5)*.12;avalancheMesh.scale.y=1+progress*.12;snowFront.material.opacity=.78+Math.sin(state.elapsed*9)*.1;snowCrest.position.y=4.5+Math.sin(state.elapsed*7)*.35;}
