@@ -207,7 +207,11 @@ function updateRescueAndEffects(dt){
  const avalancheNow=state.avalancheActive>0;
  if(avalancheNow&&!state.down){const progress=Math.max(0,Math.min(1,(14-state.avalancheActive)/14));const front=-52+progress*34;const px=hero.root.position.x,pz=hero.root.position.z;if(px>avalancheCorridorX-15&&px<avalancheCorridorX+15&&Math.abs(pz-front)<8){hero.root.position.z=Math.min(88,pz+dt*10);hero.root.position.x=Math.max(-27,Math.min(3,px+dt*1.6));state.health=clamp(state.health-dt*22,0,100);state.temp=clamp(state.temp-dt*9,0,100);if(state.health<=0&&!state.down){state.down=true;state.rescueTime=0;say('🏔️ La avalancha te derribó: tu compañero inicia el rescate');}}}
 
- if(avalancheNow&&!avalanchePrev){if(!activeRumble&&!tryRecordedAvalanche())playDangerSound();say('🏔️ ¡ALUD! Frente de nieve avanzando: buscá terreno seguro');}
+ if(avalancheNow){const progress=Math.max(0,Math.min(1,(14-state.avalancheActive)/14));const front=-52+progress*34;const hit=(p)=>Math.abs(p.x-avalancheCorridorX)<15&&Math.abs(p.z-front)<7;
+for(const a of animals){if(!a.alive||!hit(a.root.position))continue;a.hp-=dt*120;a.root.position.z+=dt*9;a.root.position.x+=(a.root.position.x-avalancheCorridorX)*dt*.3;if(a.hp<=0){a.alive=false;a.root.rotation.z=Math.PI/2;a.root.position.y=.3;say('🏔️ Un animal fue alcanzado por la avalancha');}}
+for(const t of trees){if(t.userData.fallen||!hit(t.position))continue;t.userData.hp-=dt*8;if(t.userData.hp<=0){t.userData.fallen=true;t.rotation.x=1.35;t.position.z+=2;t.position.y=.3;say('🌲 La avalancha derribó un árbol');}}
+}
+if(avalancheNow&&!avalanchePrev){if(!activeRumble&&!tryRecordedAvalanche())playDangerSound();say('🏔️ ¡ALUD! Frente de nieve avanzando: buscá terreno seguro');}
  avalanchePrev=avalancheNow;
  avalancheMesh.visible=avalancheNow;
  if(avalancheNow){const progress=Math.max(0,Math.min(1,(14-state.avalancheActive)/14));avalancheMesh.position.x=avalancheCorridorX;avalancheMesh.position.z=-52+progress*34;avalancheMesh.position.y=.25+Math.sin(state.elapsed*5)*.12;avalancheMesh.scale.y=1+progress*.12;snowFront.material.opacity=.78+Math.sin(state.elapsed*9)*.1;snowCrest.position.y=4.5+Math.sin(state.elapsed*7)*.35;}
