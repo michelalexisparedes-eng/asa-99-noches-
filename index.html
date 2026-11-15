@@ -124,12 +124,38 @@ const avalancheTest=document.createElement('button');avalancheTest.textContent='
 let avalanchePrev=false;
 let soundContext=null,noiseBuffer=null;
 function initGameAudio(){try{soundContext=soundContext||new (window.AudioContext||window.webkitAudioContext)();soundContext.resume();if(!noiseBuffer){noiseBuffer=soundContext.createBuffer(1,soundContext.sampleRate*2,soundContext.sampleRate);const d=noiseBuffer.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=Math.random()*2-1}}catch(e){soundContext=null}}
-function playDangerSound(){initGameAudio();if(!soundContext||!noiseBuffer){say('Audio no disponible en este navegador');return;}const source=soundContext.createBufferSource(),filter=soundContext.createBiquadFilter(),gain=soundContext.createGain();source.buffer=noiseBuffer;source.loop=true;filter.type='lowpass';filter.frequency.value=260;gain.gain.setValueAtTime(.001,soundContext.currentTime);gain.gain.exponentialRampToValueAtTime(.24,soundContext.currentTime+.8);gain.gain.exponentialRampToValueAtTime(.001,soundContext.currentTime+5);source.connect(filter);filter.connect(gain);gain.connect(soundContext.destination);source.start();source.stop(soundContext.currentTime+5.1)}
+let activeRumble=null;
+function playDangerSound(){
+ initGameAudio();if(!soundContext||!noiseBuffer){say('Audio no disponible en este navegador');return;}
+ if(activeRumble){try{activeRumble.stop()}catch(e){}activeRumble=null}
+ const ctx=soundContext,t=ctx.currentTime,duration=13.8;
+ const source=ctx.createBufferSource(),low=ctx.createBiquadFilter(),body=ctx.createBiquadFilter(),gain=ctx.createGain();
+ source.buffer=noiseBuffer;source.loop=true;low.type='lowpass';low.frequency.setValueAtTime(110,t);low.frequency.linearRampToValueAtTime(420,t+3);low.frequency.linearRampToValueAtTime(190,t+duration);
+ body.type='peaking';body.frequency.value=85;body.Q.value=.7;body.gain.value=12;
+ gain.gain.setValueAtTime(.0001,t);gain.gain.exponentialRampToValueAtTime(.48,t+1.6);
+ gain.gain.setValueAtTime(.48,t+10);gain.gain.exponentialRampToValueAtTime(.0001,t+duration);
+ source.connect(low);low.connect(body);body.connect(gain);gain.connect(ctx.destination);
+ const sub=ctx.createOscillator(),subGain=ctx.createGain();sub.type='sawtooth';sub.frequency.setValueAtTime(48,t);sub.frequency.linearRampToValueAtTime(31,t+duration);
+ subGain.gain.setValueAtTime(.0001,t);subGain.gain.linearRampToValueAtTime(.095,t+2);subGain.gain.setValueAtTime(.095,t+10);subGain.gain.linearRampToValueAtTime(0,t+duration);
+ sub.connect(subGain);subGain.connect(ctx.destination);
+ source.start(t);sub.start(t);source.stop(t+duration+.05);sub.stop(t+duration+.05);activeRumble=source;
+}
+function playAnimalCall(kind='wild'){
+ initGameAudio();if(!soundContext)return;
+ const ctx=soundContext,t=ctx.currentTime,osc=ctx.createOscillator(),filter=ctx.createBiquadFilter(),g=ctx.createGain();
+ const deep=kind==='puma'||kind==='bear';osc.type=deep?'sawtooth':'triangle';
+ osc.frequency.setValueAtTime(deep?135:420,t);osc.frequency.exponentialRampToValueAtTime(deep?68:210,t+.75);
+ filter.type='lowpass';filter.frequency.value=deep?620:1100;
+ g.gain.setValueAtTime(.0001,t);g.gain.exponentialRampToValueAtTime(.085,t+.15);g.gain.setValueAtTime(.075,t+.65);g.gain.exponentialRampToValueAtTime(.0001,t+1.8);
+ osc.connect(filter);filter.connect(g);g.connect(ctx.destination);osc.start(t);osc.stop(t+1.85);
+}
+let lastAnimalCall=-100;
 
 function updateRescueAndEffects(dt){
  flashlight.position.copy(hero.root.position).add(new THREE.Vector3(0,2.3,0));
  const a=hero.root.rotation.y;flashTarget.position.copy(flashlight.position).add(new THREE.Vector3(Math.sin(a)*12,-1.8,Math.cos(a)*12));
  const hr=(state.minutes/60)%24;flashlight.intensity=flashlightOn?(hr>=18||hr<7?13:5):0;
+ if(state.started&&state.elapsed-lastAnimalCall>24&&Math.random()<dt*.075){lastAnimalCall=state.elapsed;playAnimalCall(Math.random()<.5?'puma':'wild');}
  const avalancheNow=state.avalancheActive>0;
  if(avalancheNow&&!avalanchePrev){playDangerSound();say('🏔️ ¡ALUD! Frente de nieve avanzando: buscá terreno seguro');}
  avalanchePrev=avalancheNow;
