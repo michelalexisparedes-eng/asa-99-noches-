@@ -196,7 +196,7 @@ let lastAnimalCall=-100;
 // v42: audio real opcional. Se activará automáticamente cuando el MP3 se publique.
 const avalancheRecording=new Audio('assets/avalancha-real.mp3');avalancheRecording.preload='none';avalancheRecording.volume=.65;
 avalancheRecording.addEventListener('error',()=>{avalancheRecording.dataset.unavailable='1'});
-function tryRecordedAvalanche(){if(avalancheRecording.dataset.unavailable==='1')return false;try{avalancheRecording.currentTime=0;avalancheRecording.play().catch(()=>{});return true}catch(e){return false}}
+function tryRecordedAvalanche(){if(avalancheRecording.dataset.unavailable==='1')return false;try{avalancheRecording.currentTime=0;avalancheRecording.play().catch(()=>{avalancheRecording.dataset.unavailable='1';playDangerSound()});return true}catch(e){return false}}
 
 
 function updateRescueAndEffects(dt){
